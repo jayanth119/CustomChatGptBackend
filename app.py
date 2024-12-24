@@ -6,8 +6,12 @@ import google.generativeai as genai
 from PyPDF2 import PdfReader
 from docx import Document
 import base64
-# from docx import Document
 import pandas as pd
+from typing import Optional
+from io import BytesIO
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Request
+
 load_dotenv()
 
 
@@ -16,67 +20,94 @@ apiKey = os.getenv('GOOGLE_GEMININI_API_KEY')
 genai.configure(api_key=apiKey)
 model = genai.GenerativeModel("gemini-1.5-flash")
 router = APIRouter()
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
 
+SUPPORTED_FILE_TYPES = ["pdf", "docx", "txt", "png", "jpg", "jpeg", "xlsx", "xls"]
+
 @router.post("/api/generatecontent/")
-def generate_content(prompt: str):
-    prompt = f" check given prompt is  general queries or not if it is general queries  then answering general queries  or else do not answering  the question  : {prompt}"
+async def generate_content(request: Request):
+    body = await request.json()
+    print(f"Received request body: {body}")
+    prompt = body.get("prompt", "")
+    if not prompt:
+        raise HTTPException(status_code=422, detail="Prompt is required")
+    prompt = f"Check if the given prompt is a general query. If yes, answer it; otherwise, do not answer: {prompt}"
     response = model.generate_content(prompt)
-    print(response)
-    return {"response": response.text}
+    return {"status": "success", "response": response.text}
 
 @router.post("/api/generatecode/")
-def generate_code(prompt: str):
-    prompt = f" check given prompt is programming related question or not if it is programming question then generate code for this or else do not generate code and specifies it is not programming question : {prompt}"
+async def generate_code(request: Request):
+    body = await request.json()
+    prop = body.get("prompt", "")
+    prompt = f"Check if the given prompt is a programming-related question. If yes, generate code; otherwise, indicate it is not programming-related: {prop}"
     response = model.generate_content(prompt)
-    return {"response": response.text}
+    return {"status": "success", "response": response.text}
 
-@router.post("/api/textsummerize/")
-def text_summerize(prompt: str , lines : int):
-    prompt =f' if it is large text then summerize the  text in { lines } other wise do not summerize  : {prompt}'
+@router.post("/api/textsummarize/")
+async def text_summarize(prompt: str, lines: int):
+    body = await request.json()
+    prop = body.get("prompt", "")
+    lines = body.get("lines" , "")
+    prompt = f"Summarize the text into {lines} lines if it is long; otherwise, do not summarize: {prop}"
     response = model.generate_content(prompt)
-    return {"response": response.text}
+    return {"status": "success", "response": response.text}
 
-SUPPORTED_FILE_TYPES = ["pdf", "docx", "txt" , "png" , "jpg" , "jpeg" , "xlsx" , "xls"]
-
-@router.post('/api/documentsummarize/')
+@router.post("/api/documentsummarize/")
 async def document_summarize(file: UploadFile = File(...)):
     documenttype = file.filename.split('.')[-1].lower()
-
     if documenttype not in SUPPORTED_FILE_TYPES:
-        return {"response": "Invalid file format"}
-    text = ""
-    if documenttype == "pdf":
-        reader = PdfReader(file.file)  
-        for page in reader.pages:
-            text += page.extract_text()    
-    elif documenttype == "docx":
-        document = Document(file.file)
-        for para in document.paragraphs:
-            text += para.text
-    elif documenttype == "txt":
-        text = file.file.read().decode("utf-8")
-    elif documenttype in ['png', 'jpg', 'jpeg']:
-        image_content = await file.read() 
-        encoded_image = base64.b64encode(image_content).decode('utf-8')
-        prompt = "Describe the image"
-        
-        response = model.generate_content([{
-            'mime_type': f'image/{documenttype}', 
-            'data': encoded_image
-        }, prompt])
-        return {"response": response.text}
-    elif documenttype == ['xlsx' , 'xls']:
-        excel_content = await file.read() 
-        excel_df = pd.read_excel(BytesIO(excel_content), sheet_name=None)  
-        for sheet_name, sheet_df in excel_df.items():
-            text += sheet_df.to_string(index=False)
-        
-    response = model.generate_content(text)
+        return {"status": "error", "message": "Invalid file format"}
 
-    return {"response": response.text}
+    text = ""
+    try:
+        if documenttype == "pdf":
+            reader = PdfReader(file.file)
+            for page in reader.pages:
+                text += page.extract_text()
+        elif documenttype == "docx":
+            document = Document(file.file)
+            for para in document.paragraphs:
+                text += para.text
+        elif documenttype == "txt":
+            text = await file.read().decode("utf-8")
+        elif documenttype in ['png', 'jpg', 'jpeg']:
+            image_content = await file.read()
+            encoded_image = base64.b64encode(image_content).decode('utf-8')
+            prompt = "Describe the image"
+            response = model.generate_content([{
+                'mime_type': f'image/{documenttype}',
+                'data': encoded_image
+            }, prompt])
+            return {"status": "success", "response": response.text}
+        elif documenttype in ['xlsx', 'xls']:
+            excel_content = await file.read()
+            excel_df = pd.read_excel(BytesIO(excel_content), sheet_name=None)
+            for sheet_name, sheet_df in excel_df.items():
+                text += sheet_df.to_string(index=False)
+        
+        response = model.generate_content(text)
+        return {"status": "success", "response": response.text}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@router.post("/api/webcontent/")
+async def web_content(url: str):
+    try:
+        if not Web().is_valid_url(url):
+            return {"status": "error", "message": "Invalid URL"}
+        content = Web().getContent(url)
+        response = model.generate_content(content)
+        return {"status": "success", "response": response.text}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 app.include_router(router)
