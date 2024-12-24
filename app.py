@@ -33,22 +33,21 @@ def read_root():
 
 SUPPORTED_FILE_TYPES = ["pdf", "docx", "txt", "png", "jpg", "jpeg", "xlsx", "xls"]
 
-@router.post("/api/generatecontent/")
+@router.post("/api/gen-query")
 async def generate_content(request: Request):
     body = await request.json()
-    print(f"Received request body: {body}")
     prompt = body.get("prompt", "")
     if not prompt:
         raise HTTPException(status_code=422, detail="Prompt is required")
-    prompt = f"Check if the given prompt is a general query. If yes, answer it; otherwise, do not answer: {prompt}"
+    prompt = f"Check if the given prompt is a general query ,  donot say yes or no  and donot mention it is general query or not . If yes, answer it; otherwise, do not answer: {prompt}"
     response = model.generate_content(prompt)
     return {"status": "success", "response": response.text}
 
-@router.post("/api/generatecode/")
+@router.post("/api/code-genx")
 async def generate_code(request: Request):
     body = await request.json()
     prop = body.get("prompt", "")
-    prompt = f"Check if the given prompt is a programming-related question. If yes, generate code; otherwise, indicate it is not programming-related: {prop}"
+    prompt = f"Check if the given prompt is a programming-related question ,donot say yes or no  and donot mention it is  coding content  or not . If yes, generate code; otherwise, indicate it is not programming-related: {prop}"
     response = model.generate_content(prompt)
     return {"status": "success", "response": response.text}
 
@@ -61,7 +60,7 @@ async def text_summarize(prompt: str, lines: int):
     response = model.generate_content(prompt)
     return {"status": "success", "response": response.text}
 
-@router.post("/api/documentsummarize/")
+@router.post("/api/doc-sumex")
 async def document_summarize(file: UploadFile = File(...)):
     documenttype = file.filename.split('.')[-1].lower()
     if documenttype not in SUPPORTED_FILE_TYPES:
@@ -99,7 +98,7 @@ async def document_summarize(file: UploadFile = File(...)):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-@router.post("/api/webcontent/")
+@router.post("/api/web-intx")
 async def web_content(url: str):
     try:
         if not Web().is_valid_url(url):
@@ -111,3 +110,4 @@ async def web_content(url: str):
         return {"status": "error", "message": str(e)}
 
 app.include_router(router)
+
