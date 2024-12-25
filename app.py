@@ -1,4 +1,4 @@
-from fastapi import FastAPI , APIRouter , HTTPException 
+from fastapi import FastAPI , APIRouter , HTTPException  , Form 
 from fastapi import File , UploadFile
 from dotenv import load_dotenv
 import os
@@ -61,7 +61,10 @@ async def text_summarize(prompt: str, lines: int):
     return {"status": "success", "response": response.text}
 
 @router.post("/api/doc-sumex")
-async def document_summarize(file: UploadFile = File(...)):
+async def document_summarize(
+    file: UploadFile = File(...), 
+    prompt: str = Form(None)
+):
     documenttype = file.filename.split('.')[-1].lower()
     if documenttype not in SUPPORTED_FILE_TYPES:
         return {"status": "error", "message": "Invalid file format"}
@@ -81,11 +84,11 @@ async def document_summarize(file: UploadFile = File(...)):
         elif documenttype in ['png', 'jpg', 'jpeg']:
             image_content = await file.read()
             encoded_image = base64.b64encode(image_content).decode('utf-8')
-            prompt = "Describe the image"
+            image_prompt = prompt if prompt else "Describe the image"
             response = model.generate_content([{
                 'mime_type': f'image/{documenttype}',
                 'data': encoded_image
-            }, prompt])
+            }, image_prompt])
             return {"status": "success", "response": response.text}
         elif documenttype in ['xlsx', 'xls']:
             excel_content = await file.read()
@@ -93,6 +96,10 @@ async def document_summarize(file: UploadFile = File(...)):
             for sheet_name, sheet_df in excel_df.items():
                 text += sheet_df.to_string(index=False)
         
+       
+        if prompt:
+            text = f"{prompt}\n{text}"
+
         response = model.generate_content(text)
         return {"status": "success", "response": response.text}
     except Exception as e:
