@@ -53,11 +53,10 @@ async def generate_code(request: Request):
     return {"status": "success", "response": response.text}
 
 @router.post("/api/textsummarize/")
-async def text_summarize(prompt: str, lines: int):
+async def text_summarize(request: Request):
     body = await request.json()
     prop = body.get("prompt", "")
-    lines = body.get("lines" , "")
-    prompt = f"Summarize the text into {lines} lines if it is long; otherwise, do not summarize: {prop}"
+    prompt = f"Summarize the text into  lines if it is long; otherwise, if short text do not summarize: {prop}"
     response = model.generate_content(prompt)
     return {"status": "success", "response": response.text}
 
@@ -108,7 +107,7 @@ async def document_summarize(
         return {"status": "error", "message": str(e)}
 
 
-@app.post("/api/web-intx")
+@router.post("/api/web-intx")
 async def web_content(request: Request):
     body = await request.json()
     prop = body.get("prompt", "")
@@ -123,11 +122,12 @@ async def web_content(request: Request):
         if content.startswith("Error"):
             print(4)
             return {"status": "error", "message": content}
+
         print(5)
-        # Replace `model.generate_content(content)` with your actual model logic
+        prompt = f"Generate content based on the following URL: {prop} or answer only if given prompt is static web content"
         response = model.generate_content(content)
         print(6)
-        return {"status": "success", "response": response["text"]}
+        return {"status": "success", "response": response.text}
 
     except Exception as e:
         return {"status": "error", "message": str(e)}

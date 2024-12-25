@@ -6,7 +6,8 @@ import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
-
+import google.generativeai as genai
+import os 
 class Web:
     def __init__(self):
         nltk.download('punkt')
@@ -26,7 +27,6 @@ class Web:
             text = soup.get_text()
             text = self.preprocessText(text)
             updated_text = " ".join(text)
-            print(updated_text)
             return updated_text
         return "Error"
 
@@ -45,7 +45,10 @@ class Web:
 
 
 if __name__ == "__main__":
-    mod = Web("https://pypi.org/project/beautifulsoup4/")
-    mod.getContent()
+    mod = Web()
+    apiKey = os.getenv('GOOGLE_GEMININI_API_KEY')
+    genai.configure(api_key="AIzaSyDmq4KatLOIFEWBukEbarEQ_Zysrl0j9UQ")
+    model = genai.GenerativeModel("gemini-1.5-flash")
+    print(model.generate_content(mod.getContent("https://pypi.org/project/beautifulsoup4/")))
 
         
