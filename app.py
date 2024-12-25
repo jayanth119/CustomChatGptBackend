@@ -11,6 +11,7 @@ from typing import Optional
 from io import BytesIO
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Request
+from utils.staticweb import Web
 
 load_dotenv()
 
@@ -98,6 +99,7 @@ async def document_summarize(
         
        
         if prompt:
+            
             text = f"{prompt}\n{text}"
 
         response = model.generate_content(text)
@@ -105,14 +107,28 @@ async def document_summarize(
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-@router.post("/api/web-intx")
-async def web_content(url: str):
+
+@app.post("/api/web-intx")
+async def web_content(request: Request):
+    body = await request.json()
+    prop = body.get("prompt", "")
     try:
-        if not Web().is_valid_url(url):
+        web_helper = Web()
+        if not web_helper.is_valid_url(prop):
+            print(1)
             return {"status": "error", "message": "Invalid URL"}
-        content = Web().getContent(url)
+        print(2)
+        content = web_helper.getContent(prop)
+        print(3)
+        if content.startswith("Error"):
+            print(4)
+            return {"status": "error", "message": content}
+        print(5)
+        # Replace `model.generate_content(content)` with your actual model logic
         response = model.generate_content(content)
-        return {"status": "success", "response": response.text}
+        print(6)
+        return {"status": "success", "response": response["text"]}
+
     except Exception as e:
         return {"status": "error", "message": str(e)}
 

@@ -38,7 +38,7 @@ class Web:
         lemmatized_words = [lemmatizer.lemmatize(word) for word in filtered_words]
         return lemmatized_words
     def is_valid_url(self , url ) :
-        pattern = r'^(https?://)(www\.)?[\w-]+\.[a-z]{2,6}(\.[a-z]{2})?(/[\w-./?%&=]*)?$'
+        pattern = r'^(https?://)(www\.)?[\w\-]+(\.[a-z]{2,6})+(/[^\s]*)?$'
         if re.match(pattern, url):
             return True
         return False
