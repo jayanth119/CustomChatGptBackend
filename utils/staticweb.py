@@ -37,11 +37,9 @@ class Web:
         lemmatizer = WordNetLemmatizer()
         lemmatized_words = [lemmatizer.lemmatize(word) for word in filtered_words]
         return lemmatized_words
-    def is_valid_url(self , url ) :
-        pattern = r'^(https?://)(www\.)?[\w\-]+(\.[a-z]{2,6})+(/[^\s]*)?$'
-        if re.match(pattern, url):
-            return True
-        return False
+    def is_valid_url(self, url):
+        pattern = r'^(https?://)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/[^\s]*)?$'
+        return bool(re.match(pattern, url))
 
 
 if __name__ == "__main__":
