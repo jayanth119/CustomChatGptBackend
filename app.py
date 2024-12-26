@@ -40,7 +40,7 @@ async def generate_content(request: Request):
     prompt = body.get("prompt", "")
     if not prompt:
         raise HTTPException(status_code=422, detail="Prompt is required")
-    prompt = f"Check if the given prompt is a general query ,  donot say yes or no  and donot mention it is general query or not . If yes, answer it; otherwise, do not answer: {prompt}"
+    prompt = f"Check if the given prompt is a general query ,  donot say yes or no  and donot mention it is general query or not  , do not generate any programming code . If yes, answer it; otherwise, do not answer: {prompt}"
     response = model.generate_content(prompt)
     return {"status": "success", "response": response.text}
 
@@ -56,7 +56,7 @@ async def generate_code(request: Request):
 async def text_summarize(request: Request):
     body = await request.json()
     prop = body.get("prompt", "")
-    prompt = f"Summarize the text into  lines if it is long; otherwise, if short text do not summarize: {prop}"
+    prompt = f"Summarize the text into mentioned  lines if it is long; otherwise, if short text do not summarize , do not generate your data for the mentioned prompt your task is to summerize data: {prop}"
     response = model.generate_content(prompt)
     return {"status": "success", "response": response.text}
 
@@ -124,7 +124,7 @@ async def web_content(request: Request):
             return {"status": "error", "message": content}
 
         print(5)
-        prompt = f"Generate content based on the following URL: {prop} or answer only if given prompt is static web content"
+        prompt = f"Generate content based on the following URL: {prop} or answer only if given prompt is static web content donot generate any programming code and content if it is not static web content then dont generate any content or response simply do not know the answer "  
         response = model.generate_content(content)
         print(6)
         return {"status": "success", "response": response.text}
